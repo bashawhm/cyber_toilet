@@ -47,6 +47,10 @@ int main() {
             stage.simEntities();
             break;
         }
+        case Save: {
+            stage.saveGame();
+            break;
+        }
         default:
             break;
         }

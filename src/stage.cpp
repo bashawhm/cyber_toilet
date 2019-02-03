@@ -1,6 +1,7 @@
 #include "stage.h"
 
 #include <iostream>
+#include <fstream>
 #include <assert.h>
 #include <cmath>
 #include <stdlib.h>
@@ -41,6 +42,20 @@ static inline Entity *initTank(SDL_Rect r, int x, int y) {
     return tank;
 }
 
+/*static inline Entity *initTank(SDL_Rect r, int x, int y, int health) {
+    Entity *tank = new Entity;
+    SDL_Rect rect = r;
+    tank -> x = x;
+    tank -> y = y;
+    rect.x = tank -> x * rect.w;
+    rect.y = tank -> y * rect.h;
+    tank -> tile.rect = rect;
+    tank -> tile.texIdx = Tank;
+    tank -> health = 50;
+    tank -> strength = 10;
+    return tank;
+}*/
+
 void Stage::placeEscapePod() {
     int i = rand() % TILE_NUM_X;
     int j = rand() % TILE_NUM_Y;
@@ -64,7 +79,6 @@ Stage::Stage() {
     initTextures();
     Tile **texMap = loadGame();
     initTiles(texMap);
-    player = initPlayer();
     placeEscapePod();
 }
 
@@ -116,7 +130,8 @@ Tile **Stage::loadGame() {
     for (int i = 0; i < TILE_NUM_X; ++i) {
         texMap[i] = (Tile*)malloc(TILE_NUM_Y*sizeof(Tile));
     }
-    if (GENMAP) {
+    if (GEN_MAP) {
+        player = initPlayer();
         for (int i = 0; i < TILE_NUM_X; ++i) {
             for (int j = 0; j < TILE_NUM_Y; ++j) {
                 SDL_Rect rect;
@@ -135,6 +150,15 @@ Tile **Stage::loadGame() {
                 }
             }
         }
+    } else {
+        string _;
+        ifstream fin("./saves/save.gt5");
+        Entity newPlayer;
+        fin >> newPlayer.health;
+        fin >> newPlayer.x;
+        fin >> newPlayer.y;
+        getline(fin, _);
+
     }
     return texMap;
 }
@@ -177,6 +201,9 @@ EventCode Stage::getEvent() {
             switch (event.key.keysym.sym) {
             case SDLK_ESCAPE: {
                 return Exit;
+            }
+            case SDLK_TAB: {
+                return Save;
             }
             case SDLK_w: {
                 if (player.y-1 >= 0 && (tiles[player.x][player.y-1].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
@@ -338,3 +365,20 @@ void Stage::simEntities() {
     }
 }
 
+void Stage::saveGame() {
+    cerr << "Saving game..." << endl;
+    ofstream fout("./saves/save.gt5");
+    fout << player.health << " " << player.x << " " << player.y << endl;
+    fout << "BEGIN ENTITY" << endl;
+    for (auto itr = entities.begin(); itr != entities.end(); ++itr) {
+        fout << itr -> health << " " << itr -> x << " " << itr -> y << endl;
+    }
+    fout << "END ENTITY" << endl;
+    for (int i = 0; i < TILE_NUM_X; ++i) {
+        for (int j = 0; j < TILE_NUM_Y; ++j) {
+            fout << tiles[i][j].texIdx << " ";
+        }
+        fout << endl;
+    }
+    cerr << "Save successful..." << endl;
+}

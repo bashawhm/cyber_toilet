@@ -20,6 +20,7 @@ enum EventCode {
     None = 0,
     Exit,
     Move,
+    Save,
 };
 
 struct Tile {
@@ -53,6 +54,7 @@ public:
     void initTextures();
     void initTiles(Tile **texMap);
     Tile **loadGame();
+    void saveGame();
     void render();
     EventCode getEvent();
     void simEntities();

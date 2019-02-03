@@ -15,5 +15,5 @@
 #define FIRE_SIGHT_RANGE 3
 #define PATH_SIGHT_RANGE 5
 
-#define GENMAP true
+#define GEN_MAP true
 #define DEBUG true
