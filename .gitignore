@@ -1,0 +1,6 @@
+.build/*
+.build/
+.vscode/
+.vscode/*
+.DS_Store
+cyber_toilet
