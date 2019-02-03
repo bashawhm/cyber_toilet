@@ -225,9 +225,13 @@ bool Stage::lineOfSight(const Entity &ent) {
     if (abs(ent.x - player.x) <= SIGHT_RANGE && abs(ent.y - player.y) <= SIGHT_RANGE) {
         //In sight range
         //If wall not in way in x
-        bool goodX = true;
+        bool goodX = false;
         //Good in +x direction
         for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (ent.x+i == player.x && ent.y == player.y) {
+                goodX = true;
+                break;
+            }
             if (tiles[ent.x+i][ent.y].texIdx != Station) {
                 goodX = false;
                 break;
@@ -237,8 +241,13 @@ bool Stage::lineOfSight(const Entity &ent) {
             return true;
         }
 
+        goodX = false;
         //Good in -x direction
         for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (ent.x-i == player.x && ent.y == player.y) {
+                goodX = true;
+                break;
+            }
             if (tiles[ent.x-i][ent.y].texIdx != Station) {
                 goodX = false;
                 break;
@@ -248,9 +257,13 @@ bool Stage::lineOfSight(const Entity &ent) {
             return true;
         }
 
-        bool goodY = true;
+        bool goodY = false;
         //good in +y dir
         for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (ent.x == player.x && ent.y+i == player.y) {
+                goodY = true;
+                break;
+            }
             if (tiles[ent.x][ent.y+i].texIdx != Station) {
                 goodY = false;
                 break;
@@ -260,8 +273,13 @@ bool Stage::lineOfSight(const Entity &ent) {
             return true;
         }
 
+        goodY = false;
         //Good in the -y direction
         for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (ent.x == player.x && ent.y-i == player.y) {
+                goodY = true;
+                break;
+            }
             if (tiles[ent.x][ent.y-i].texIdx != Station) {
                 goodY = false;
                 break;
@@ -286,13 +304,11 @@ void Stage::simEntities() {
                     if (tiles[itr -> x][itr -> y-1].texIdx == Station) {
                         //Go up
                         itr -> y--;
-                        continue;
                     }
                 } else {
                     if (tiles[itr -> x][itr -> y+1].texIdx == Station) {
                         //Go down
                         itr -> y++;
-                        continue;
                     }
                 }
             } else {
@@ -300,19 +316,17 @@ void Stage::simEntities() {
                     if (tiles[itr -> x-1][itr -> y].texIdx == Station) {
                         //Go right
                         itr -> x--;
-                        continue;
                     }
                 } else {
                     if (tiles[itr -> x+1][itr -> y].texIdx == Station) {
                         //Go left
                         itr -> x++;
-                        continue;
                     }
                 }
             }
             //Attack player if possible
             if (lineOfSight(*itr)) {
-                cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
+                // cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
                 itr -> health -= player.strength;
                 player.health -= itr -> strength;
                 cerr << player.health << endl;
