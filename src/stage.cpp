@@ -330,7 +330,7 @@ void Stage::simEntities() {
                     // cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
                     itr -> health -= player.strength;
                     player.health -= itr -> strength;
-                    cerr << player.health << endl;
+                    cerr << "Health: " << player.health << endl;
                 }
             }
         }
