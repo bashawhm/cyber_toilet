@@ -11,6 +11,47 @@
 
 using namespace std;
 
+static inline Entity initPlayer() {
+    Entity player;
+    SDL_Rect rect;
+    rect.w = (int)round((float)WINWIDTH / (float)TILES_PER_SCREEN_X);
+    rect.h = (int)round((float)WINHEIGHT / (float)TILES_PER_SCREEN_Y);
+    player.x = PLAYER_START_X;
+    player.y = PLAYER_START_Y;
+    rect.x = (TILES_PER_SCREEN_X / 2) * rect.w;
+    rect.y = (TILES_PER_SCREEN_Y / 2) * rect.h;
+    player.tile.rect = rect;
+    player.tile.texIdx = Toilet;
+    player.health = 100;
+    player.strength = 25;
+    return player;
+}
+
+static inline Entity *initTank(SDL_Rect r, int x, int y) {
+    Entity *tank = new Entity;
+    SDL_Rect rect = r;
+    tank -> x = x;
+    tank -> y = y;
+    rect.x = tank -> x * rect.w;
+    rect.y = tank -> y * rect.h;
+    tank -> tile.rect = rect;
+    tank -> tile.texIdx = Tank;
+    tank -> health = 50;
+    tank -> strength = 10;
+    return tank;
+}
+
+void Stage::placeEscapePod() {
+    int i = rand() % TILE_NUM_X;
+    int j = rand() % TILE_NUM_Y;
+    do { 
+        i = rand() % TILE_NUM_X;
+        j = rand() % TILE_NUM_Y;
+    } while (tiles[i][j].texIdx != Station);
+    tiles[i][j].texIdx = Escape;
+    // cerr << i << " " << j << endl;
+}
+
 Stage::Stage() {
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow("Cyber Toilet", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINWIDTH, WINHEIGHT, SDL_WINDOW_SHOWN);
@@ -21,15 +62,8 @@ Stage::Stage() {
     initTextures();
     Tile **texMap = loadGame();
     initTiles(texMap);
-    SDL_Rect rect;
-    rect.w = (int)round((float)WINWIDTH / (float)TILES_PER_SCREEN_X);
-    rect.h = (int)round((float)WINHEIGHT / (float)TILES_PER_SCREEN_Y);
-    player.x = 128;
-    player.y = 128;
-    rect.x = (TILES_PER_SCREEN_X / 2) * rect.w;
-    rect.y = (TILES_PER_SCREEN_Y / 2) * rect.h;
-    player.tile.rect = rect;
-    player.tile.texIdx = Toilet;
+    player = initPlayer();
+    placeEscapePod();
 }
 
 void Stage::initTextures() {
@@ -49,6 +83,16 @@ void Stage::initTextures() {
     textures.push_back(tex);
     SDL_FreeSurface(sur);
     sur = IMG_Load("assets/wall.png");
+    assert(sur != NULL);
+    tex = SDL_CreateTextureFromSurface(renderer, sur);
+    textures.push_back(tex);
+    SDL_FreeSurface(sur);
+    sur = IMG_Load("assets/tank.png");
+    assert(sur != NULL);
+    tex = SDL_CreateTextureFromSurface(renderer, sur);
+    textures.push_back(tex);
+    SDL_FreeSurface(sur);
+    sur = IMG_Load("assets/escape.png");
     assert(sur != NULL);
     tex = SDL_CreateTextureFromSurface(renderer, sur);
     textures.push_back(tex);
@@ -83,6 +127,9 @@ Tile **Stage::loadGame() {
                     texMap[i][j].texIdx = Space;
                 } else {
                     texMap[i][j].texIdx = Station;
+                    if (rand()%NUM_TANKS == 0) {
+                        entities.push_back(*initTank(texMap[i][j].rect, i, j));
+                    }
                 }
             }
         }
@@ -97,7 +144,7 @@ void Stage::render() {
         int setY = 0;
         for (int j = (player.y - TILES_PER_SCREEN_Y / 2); j <= (player.y + TILES_PER_SCREEN_Y / 2); ++j, ++setY) {
             //start the view screen at 0, 0
-            if (i >= 0 && j >= 0) {
+            if (i >= 0 && j >= 0 && i < TILE_NUM_X && j < TILE_NUM_Y) {
                 SDL_Rect tmpRect;
                 tmpRect.w = tiles[i][j].rect.w;
                 tmpRect.h = tiles[i][j].rect.h;
@@ -105,6 +152,13 @@ void Stage::render() {
                 tmpRect.y = setY * tmpRect.h;
 
                 SDL_RenderCopy(renderer, textures[tiles[i][j].texIdx], NULL, &tmpRect); 
+                for (auto itr = entities.begin(); itr != entities.end(); ++itr) {
+                    if (itr -> x == i && itr -> y == j) {
+                        if (itr -> health > 0) {
+                            SDL_RenderCopy(renderer, textures[itr -> tile.texIdx], NULL, &tmpRect);
+                        }
+                    }
+                }
             }
         }
     }
@@ -123,19 +177,27 @@ EventCode Stage::getEvent() {
                 return Exit;
             }
             case SDLK_w: {
-                player.y--;
+                if (player.y-1 >= 0 && (tiles[player.x][player.y-1].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                    player.y--;
+                }
                 return Move;
             }
             case SDLK_a: {
-                player.x--;
+                if (player.x-1 >= 0 && (tiles[player.x-1][player.y].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                    player.x--;
+                }
                 return Move;
             }
             case SDLK_s: {
-                player.y++;
+                if (player.y+1 < TILE_NUM_Y && (tiles[player.x][player.y+1].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                    player.y++;
+                }
                 return Move;
             }
             case SDLK_d: {
-                player.x++;
+                if (player.x+1 < TILE_NUM_X && (tiles[player.x+1][player.y].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                    player.x++;
+                }
                 return Move;
             }
             }
@@ -148,3 +210,114 @@ EventCode Stage::getEvent() {
     }
     return None;
 }
+
+bool Stage::atEscape() {
+    if (tiles[player.x][player.y].texIdx == Escape) {
+        return true;
+    }
+    return false;
+}
+
+bool Stage::lineOfSight(const Entity &ent) {
+    if (ent.x == player.x && ent.y == player.x) {
+        return true;
+    }
+    if (abs(ent.x - player.x) <= SIGHT_RANGE && abs(ent.y - player.y) <= SIGHT_RANGE) {
+        //In sight range
+        //If wall not in way in x
+        bool goodX = true;
+        //Good in +x direction
+        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (tiles[ent.x+i][ent.y].texIdx != Station) {
+                goodX = false;
+                break;
+            }
+        }
+        if (goodX) {
+            return true;
+        }
+
+        //Good in -x direction
+        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (tiles[ent.x-i][ent.y].texIdx != Station) {
+                goodX = false;
+                break;
+            }
+        }
+        if (goodX) {
+            return true;
+        }
+
+        bool goodY = true;
+        //good in +y dir
+        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (tiles[ent.x][ent.y+i].texIdx != Station) {
+                goodY = false;
+                break;
+            }
+        }
+        if (goodY) {
+            return true;
+        }
+
+        //Good in the -y direction
+        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+            if (tiles[ent.x][ent.y-i].texIdx != Station) {
+                goodY = false;
+                break;
+            }
+        }
+        if (goodY) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Stage::simEntities() {
+    for (auto itr = entities.begin(); itr != entities.end(); ++itr) {
+        if (itr -> health > 0) {
+            //Move towards player if possible
+            float dx = ((float)itr->x - (float)player.x);
+            float dy = (float)itr->y - (float)player.y;
+            if (abs(dy) - abs(dx) >= 0) {
+                //If there is a bigger vertical diff
+                if (dy >= 0) {
+                    if (tiles[itr -> x][itr -> y-1].texIdx == Station) {
+                        //Go up
+                        itr -> y--;
+                        continue;
+                    }
+                } else {
+                    if (tiles[itr -> x][itr -> y+1].texIdx == Station) {
+                        //Go down
+                        itr -> y++;
+                        continue;
+                    }
+                }
+            } else {
+                if (dx >= 0) {
+                    if (tiles[itr -> x-1][itr -> y].texIdx == Station) {
+                        //Go right
+                        itr -> x--;
+                        continue;
+                    }
+                } else {
+                    if (tiles[itr -> x+1][itr -> y].texIdx == Station) {
+                        //Go left
+                        itr -> x++;
+                        continue;
+                    }
+                }
+            }
+            //Attack player if possible
+            if (lineOfSight(*itr)) {
+                cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
+                itr -> health -= player.strength;
+                player.health -= itr -> strength;
+                cerr << player.health << endl;
+            }
+        }
+    }
+}
+

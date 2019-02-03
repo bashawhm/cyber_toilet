@@ -1,4 +1,5 @@
 #include <vector>
+#include <list>
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL2_framerate.h"
@@ -11,6 +12,8 @@ enum TileTex {
     Station,
     Toilet,
     Wall,
+    Tank,
+    Escape,
 };
 
 enum EventCode {
@@ -28,6 +31,8 @@ struct Entity {
     int x;
     int y;
     Tile tile;
+    int health;
+    int strength;
 };
 
 class Stage {
@@ -42,6 +47,7 @@ public:
     vector<SDL_Texture*> textures;
 
     Entity player;
+    list<Entity> entities;
 
     Stage();
     void initTextures();
@@ -49,4 +55,8 @@ public:
     Tile **loadGame();
     void render();
     EventCode getEvent();
+    void simEntities();
+    void placeEscapePod();
+    bool atEscape();
+    bool lineOfSight(const Entity &ent);
 };
