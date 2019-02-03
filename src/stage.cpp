@@ -49,7 +49,9 @@ void Stage::placeEscapePod() {
         j = rand() % TILE_NUM_Y;
     } while (tiles[i][j].texIdx != Station);
     tiles[i][j].texIdx = Escape;
-    // cerr << i << " " << j << endl;
+#ifdef DEBUG
+    cerr << "Escape pod x: " << i << " y: " << j << endl;
+#endif
 }
 
 Stage::Stage() {
@@ -327,7 +329,6 @@ void Stage::simEntities() {
                 }
                 //Attack player if possible
                 if (lineOfSight(*itr)) {
-                    // cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
                     itr -> health -= player.strength;
                     player.health -= itr -> strength;
                     cerr << "Health: " << player.health << endl;

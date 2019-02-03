@@ -50,6 +50,7 @@ int main() {
         default:
             break;
         }
+
         stage.render();
         SDL_framerateDelay(&stage.fpsManager);
     }

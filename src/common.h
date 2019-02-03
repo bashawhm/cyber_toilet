@@ -16,3 +16,4 @@
 #define PATH_SIGHT_RANGE 5
 
 #define GENMAP true
+#define DEBUG true
