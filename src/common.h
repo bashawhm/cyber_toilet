@@ -12,6 +12,7 @@
 
 #define NUM_TANKS 45
 
-#define SIGHT_RANGE 3
+#define FIRE_SIGHT_RANGE 3
+#define PATH_SIGHT_RANGE 5
 
 #define GENMAP true

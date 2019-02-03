@@ -183,19 +183,19 @@ EventCode Stage::getEvent() {
                 return Move;
             }
             case SDLK_a: {
-                if (player.x-1 >= 0 && (tiles[player.x-1][player.y].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                if (player.x-1 >= 0 && (tiles[player.x-1][player.y].texIdx == Station || tiles[player.x-1][player.y].texIdx == Escape)) {
                     player.x--;
                 }
                 return Move;
             }
             case SDLK_s: {
-                if (player.y+1 < TILE_NUM_Y && (tiles[player.x][player.y+1].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                if (player.y+1 < TILE_NUM_Y && (tiles[player.x][player.y+1].texIdx == Station || tiles[player.x][player.y+1].texIdx == Escape)) {
                     player.y++;
                 }
                 return Move;
             }
             case SDLK_d: {
-                if (player.x+1 < TILE_NUM_X && (tiles[player.x+1][player.y].texIdx == Station || tiles[player.x][player.y-1].texIdx == Escape)) {
+                if (player.x+1 < TILE_NUM_X && (tiles[player.x+1][player.y].texIdx == Station || tiles[player.x+1][player.y].texIdx == Escape)) {
                     player.x++;
                 }
                 return Move;
@@ -222,12 +222,12 @@ bool Stage::lineOfSight(const Entity &ent) {
     if (ent.x == player.x && ent.y == player.x) {
         return true;
     }
-    if (abs(ent.x - player.x) <= SIGHT_RANGE && abs(ent.y - player.y) <= SIGHT_RANGE) {
+    if (abs(ent.x - player.x) <= FIRE_SIGHT_RANGE && abs(ent.y - player.y) <= FIRE_SIGHT_RANGE) {
         //In sight range
         //If wall not in way in x
         bool goodX = false;
         //Good in +x direction
-        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+        for (int i = 0; i <= FIRE_SIGHT_RANGE; ++i) {
             if (ent.x+i == player.x && ent.y == player.y) {
                 goodX = true;
                 break;
@@ -243,7 +243,7 @@ bool Stage::lineOfSight(const Entity &ent) {
 
         goodX = false;
         //Good in -x direction
-        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+        for (int i = 0; i <= FIRE_SIGHT_RANGE; ++i) {
             if (ent.x-i == player.x && ent.y == player.y) {
                 goodX = true;
                 break;
@@ -259,7 +259,7 @@ bool Stage::lineOfSight(const Entity &ent) {
 
         bool goodY = false;
         //good in +y dir
-        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+        for (int i = 0; i <= FIRE_SIGHT_RANGE; ++i) {
             if (ent.x == player.x && ent.y+i == player.y) {
                 goodY = true;
                 break;
@@ -275,7 +275,7 @@ bool Stage::lineOfSight(const Entity &ent) {
 
         goodY = false;
         //Good in the -y direction
-        for (int i = 0; i <= SIGHT_RANGE; ++i) {
+        for (int i = 0; i <= FIRE_SIGHT_RANGE; ++i) {
             if (ent.x == player.x && ent.y-i == player.y) {
                 goodY = true;
                 break;
@@ -296,40 +296,42 @@ void Stage::simEntities() {
     for (auto itr = entities.begin(); itr != entities.end(); ++itr) {
         if (itr -> health > 0) {
             //Move towards player if possible
-            float dx = ((float)itr->x - (float)player.x);
-            float dy = (float)itr->y - (float)player.y;
-            if (abs(dy) - abs(dx) >= 0) {
-                //If there is a bigger vertical diff
-                if (dy >= 0) {
-                    if (tiles[itr -> x][itr -> y-1].texIdx == Station) {
-                        //Go up
-                        itr -> y--;
+            if (abs(itr -> x - player.x) <= PATH_SIGHT_RANGE && abs(itr -> y - player.y) <= PATH_SIGHT_RANGE) {
+                float dx = ((float)itr->x - (float)player.x);
+                float dy = (float)itr->y - (float)player.y;
+                if (abs(dy) - abs(dx) >= 0) {
+                    //If there is a bigger vertical diff
+                    if (dy >= 0) {
+                        if (tiles[itr -> x][itr -> y-1].texIdx == Station) {
+                            //Go up
+                            itr -> y--;
+                        }
+                    } else {
+                        if (tiles[itr -> x][itr -> y+1].texIdx == Station) {
+                            //Go down
+                            itr -> y++;
+                        }
                     }
                 } else {
-                    if (tiles[itr -> x][itr -> y+1].texIdx == Station) {
-                        //Go down
-                        itr -> y++;
+                    if (dx >= 0) {
+                        if (tiles[itr -> x-1][itr -> y].texIdx == Station) {
+                            //Go right
+                            itr -> x--;
+                        }
+                    } else {
+                        if (tiles[itr -> x+1][itr -> y].texIdx == Station) {
+                            //Go left
+                            itr -> x++;
+                        }
                     }
                 }
-            } else {
-                if (dx >= 0) {
-                    if (tiles[itr -> x-1][itr -> y].texIdx == Station) {
-                        //Go right
-                        itr -> x--;
-                    }
-                } else {
-                    if (tiles[itr -> x+1][itr -> y].texIdx == Station) {
-                        //Go left
-                        itr -> x++;
-                    }
+                //Attack player if possible
+                if (lineOfSight(*itr)) {
+                    // cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
+                    itr -> health -= player.strength;
+                    player.health -= itr -> strength;
+                    cerr << player.health << endl;
                 }
-            }
-            //Attack player if possible
-            if (lineOfSight(*itr)) {
-                // cerr << "player.x: " << player.x << " player.y: " << player.y << " ent.x: " << itr->x << " ent.y: " << itr->y << endl;
-                itr -> health -= player.strength;
-                player.health -= itr -> strength;
-                cerr << player.health << endl;
             }
         }
     }
